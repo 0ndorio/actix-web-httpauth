@@ -1,4 +1,4 @@
-//! Extractor for the "Bearer" HTTP Authentication Scheme
+//! Extractor for the "Bearer" HTTP Authentication Scheme.
 
 use std::borrow::Cow;
 use std::default::Default;
@@ -6,6 +6,7 @@ use std::default::Default;
 use actix_web::dev::{Payload, ServiceRequest};
 use actix_web::http::header::Header;
 use actix_web::{FromRequest, HttpRequest};
+use futures::future::{ready, Ready};
 
 use super::config::AuthExtractorConfig;
 use super::errors::AuthenticationError;
@@ -75,7 +76,7 @@ impl AuthExtractorConfig for Config {
 /// use actix_web::{web, App};
 /// use actix_web_httpauth::extractors::bearer::{BearerAuth, Config};
 ///
-/// fn index(auth: BearerAuth) -> String {
+/// async fn index(auth: BearerAuth) -> String {
 ///     format!("Hello, {}!", auth.token())
 /// }
 ///
@@ -101,41 +102,47 @@ impl BearerAuth {
 
 impl FromRequest for BearerAuth {
     type Config = Config;
-    type Future = Result<Self, Self::Error>;
+    type Future = Ready<Result<Self, Self::Error>>;
     type Error = AuthenticationError<bearer::Bearer>;
 
     fn from_request(
         req: &HttpRequest,
         _payload: &mut Payload,
     ) -> <Self as FromRequest>::Future {
-        authorization::Authorization::<authorization::Bearer>::parse(req)
-            .map(|auth| BearerAuth(auth.into_scheme()))
-            .map_err(|_| {
-                let bearer = req
-                    .app_data::<Self::Config>()
-                    .map(|config| config.0.clone())
-                    .unwrap_or_else(Default::default);
+        let auth =
+            authorization::Authorization::<authorization::Bearer>::parse(req)
+                .map(|auth| BearerAuth(auth.into_scheme()))
+                .map_err(|_| {
+                    let bearer = req
+                        .app_data::<Self::Config>()
+                        .map(|config| config.0.clone())
+                        .unwrap_or_else(Default::default);
 
-                AuthenticationError::new(bearer)
-            })
+                    AuthenticationError::new(bearer)
+                });
+
+        ready(auth)
     }
 }
 
 impl AuthExtractor for BearerAuth {
-    type Future = Result<Self, Self::Error>;
+    type Future = Ready<Result<Self, Self::Error>>;
     type Error = AuthenticationError<bearer::Bearer>;
 
     fn from_service_request(req: &ServiceRequest) -> Self::Future {
-        authorization::Authorization::<authorization::Bearer>::parse(req)
-            .map(|auth| BearerAuth(auth.into_scheme()))
-            .map_err(|_| {
-                let bearer = req
-                    .app_data::<Config>()
-                    .map(|config| config.0.clone())
-                    .unwrap_or_else(Default::default);
+        let auth =
+            authorization::Authorization::<authorization::Bearer>::parse(req)
+                .map(|auth| BearerAuth(auth.into_scheme()))
+                .map_err(|_| {
+                    let bearer = req
+                        .app_data::<Config>()
+                        .map(|config| config.0.clone())
+                        .unwrap_or_else(Default::default);
 
-                AuthenticationError::new(bearer)
-            })
+                    AuthenticationError::new(bearer)
+                });
+
+        ready(auth)
     }
 }
 

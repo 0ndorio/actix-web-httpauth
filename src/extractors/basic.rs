@@ -1,10 +1,11 @@
-//! Extractor for the "Basic" HTTP Authentication Scheme
+//! Extractor for the "Basic" HTTP Authentication Scheme.
 
 use std::borrow::Cow;
 
 use actix_web::dev::{Payload, ServiceRequest};
 use actix_web::http::header::Header;
 use actix_web::{FromRequest, HttpRequest};
+use futures::future::{ready, Ready};
 
 use super::config::AuthExtractorConfig;
 use super::errors::AuthenticationError;
@@ -72,7 +73,7 @@ impl AuthExtractorConfig for Config {
 /// use actix_web::{web, App};
 /// use actix_web_httpauth::extractors::basic::{BasicAuth, Config};
 ///
-/// fn index(auth: BasicAuth) -> String {
+/// async fn index(auth: BasicAuth) -> String {
 ///     format!("Hello, {}!", auth.user_id())
 /// }
 ///
@@ -101,7 +102,7 @@ impl BasicAuth {
 }
 
 impl FromRequest for BasicAuth {
-    type Future = Result<Self, Self::Error>;
+    type Future = Ready<Result<Self, Self::Error>>;
     type Config = Config;
     type Error = AuthenticationError<Challenge>;
 
@@ -109,7 +110,7 @@ impl FromRequest for BasicAuth {
         req: &HttpRequest,
         _: &mut Payload,
     ) -> <Self as FromRequest>::Future {
-        Authorization::<Basic>::parse(req)
+        let auth = Authorization::<Basic>::parse(req)
             .map(|auth| BasicAuth(auth.into_scheme()))
             .map_err(|_| {
                 // TODO: debug! the original error
@@ -120,16 +121,18 @@ impl FromRequest for BasicAuth {
                     .unwrap_or_else(Default::default);
 
                 AuthenticationError::new(challenge)
-            })
+            });
+
+        ready(auth)
     }
 }
 
 impl AuthExtractor for BasicAuth {
     type Error = AuthenticationError<Challenge>;
-    type Future = Result<Self, Self::Error>;
+    type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_service_request(req: &ServiceRequest) -> Self::Future {
-        Authorization::<Basic>::parse(req)
+        let auth = Authorization::<Basic>::parse(req)
             .map(|auth| BasicAuth(auth.into_scheme()))
             .map_err(|_| {
                 // TODO: debug! the original error
@@ -140,6 +143,8 @@ impl AuthExtractor for BasicAuth {
                     .unwrap_or_else(Default::default);
 
                 AuthenticationError::new(challenge)
-            })
+            });
+
+        ready(auth)
     }
 }

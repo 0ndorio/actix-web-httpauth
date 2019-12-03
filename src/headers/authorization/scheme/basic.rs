@@ -205,6 +205,7 @@ mod tests {
 
 #[cfg(all(test, feature = "nightly"))]
 mod benches {
+    extern crate test;
     use test::Bencher;
 
     use actix_web::http::header::{HeaderValue, IntoHeaderValue};
