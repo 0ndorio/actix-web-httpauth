@@ -6,7 +6,7 @@ use std::fmt;
 use std::str;
 
 use actix_web::http::header::{
-    HeaderValue, IntoHeaderValue, InvalidHeaderValueBytes,
+    HeaderValue, IntoHeaderValue, InvalidHeaderValue,
 };
 use bytes::{BufMut, Bytes, BytesMut};
 
@@ -106,10 +106,10 @@ impl fmt::Display for Basic {
 }
 
 impl IntoHeaderValue for Basic {
-    type Error = InvalidHeaderValueBytes;
+    type Error = InvalidHeaderValue;
 
     fn try_into(self) -> Result<HeaderValue, <Self as IntoHeaderValue>::Error> {
-        HeaderValue::from_shared(self.to_bytes())
+        HeaderValue::from_bytes(self.to_bytes().as_ref())
     }
 }
 
@@ -120,9 +120,7 @@ mod tests {
 
     #[test]
     fn test_plain_into_header_value() {
-        let challenge = Basic {
-            realm: None,
-        };
+        let challenge = Basic { realm: None };
 
         let value = challenge.try_into();
         assert!(value.is_ok());
