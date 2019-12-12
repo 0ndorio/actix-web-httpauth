@@ -14,8 +14,8 @@ exclude = [".travis.yml", ".gitignore"]
 edition = "2018"
 
 [dependencies]
-actix-web = { version = "^2.0.0-alpha.1", default_features = false }
-actix-service = "1.0.0-alpha.1"
+actix-web = { version = "^2.0.0-alpha.3", default_features = false }
+actix-service = "1.0"
 futures = {version = "0.3.1", features = ["compat"] }
 futures-locks = "0.3.3"
 bytes = "0.4"
